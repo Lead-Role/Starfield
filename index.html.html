@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Nebula and Starfield</title>
+    <style>
+        body { 
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+<script>
+    // Set up scene, camera, and renderer
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Starfield setup - Moving stars toward the camera
+    const starGeometry = new THREE.BufferGeometry();
+    const starCount = 1725;  // Previous number of stars + 15%
+    const starVertices = [];
+
+    for (let i = 0; i < starCount; i++) {
+        const x = THREE.MathUtils.randFloatSpread(2000);  // Random star positions
+        const y = THREE.MathUtils.randFloatSpread(2000);
+        const z = Math.random() * 2000 - 1000;  // Z axis from far to near
+        starVertices.push(x, y, z);
+    }
+
+    starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+
+    const starMaterial = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 1.5,
+        opacity: 0.8,
+        transparent: true
+    });
+
+    const stars = new THREE.Points(starGeometry, starMaterial);
+    scene.add(stars);
+
+    // Load the nebula image as a texture
+    const nebulaTexture = new THREE.TextureLoader().load('https://static1.squarespace.com/static/60d7296aaa6c862de19a7d3b/60d7a59c7320c60fed9d1ad5/610eab59e970d54710bf34c7/1674531022321/m8-8-5-21PIFinal2WM-web.jpg?format=1500w');
+
+    // Create a large plane for the nebula and map the image texture
+    const nebulaGeometry = new THREE.PlaneGeometry(2000, 1000);
+    const nebulaMaterial = new THREE.MeshBasicMaterial({
+        map: nebulaTexture,
+        side: THREE.DoubleSide,
+        opacity: 0.8,
+        transparent: true
+    });
+
+    const nebula = new THREE.Mesh(nebulaGeometry, nebulaMaterial);
+    nebula.position.z = -800;  // Place nebula far behind the stars
+    scene.add(nebula);
+
+    // Camera settings
+    camera.position.z = 500;
+
+    // Animation loop
+    function animate() {
+        requestAnimationFrame(animate);
+
+        // Move stars directly toward the camera
+        const positions = starGeometry.attributes.position.array;
+        for (let i = 0; i < positions.length; i += 3) {
+            positions[i + 2] += 2.3;  // Slowed down to previous speed + 15%
+            
+            // Reset stars when they pass the camera
+            if (positions[i + 2] > 1000) {
+                positions[i + 2] = -1000;
+                positions[i] = THREE.MathUtils.randFloatSpread(2000);  // New random x
+                positions[i + 1] = THREE.MathUtils.randFloatSpread(2000);  // New random y
+            }
+        }
+        starGeometry.attributes.position.needsUpdate = true;
+
+        // Animate nebula for subtle background motion
+        nebula.position.x += 0.1;
+        nebula.position.y += 0.05;
+
+        renderer.render(scene, camera);
+    }
+
+    animate();
+
+    // Handle window resizing
+    window.addEventListener('resize', function () {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+    });
+</script>
+
+</body>
+</html>
